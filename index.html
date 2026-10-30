@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#050b1e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Super-Vision">
+<title>Kryptonian Super-Vision Visor</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="preload" href="fonts/rajdhani-bold.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <!-- VISION STAGE -->
+  <div id="stage">
+    <canvas id="fx"></canvas>
+    <canvas id="hud"></canvas>
+  </div>
+
+  <!-- TOP BAR -->
+  <header id="topbar">
+    <div class="tb-left"><span id="clock">--:--</span><span id="date" class="dim"></span></div>
+    <div class="tb-mid"><span class="mini-s"></span><span id="modeName">NORMAL HUD</span></div>
+    <div class="tb-right"><span id="batt" class="chip">PWR --</span><span id="srcChip" class="chip">DEMO</span></div>
+  </header>
+  <div id="energy" aria-label="Krypton solar energy"><div class="lbl">SOLAR</div><div class="bar"><i id="energyFill"></i></div><div id="energyPct">100%</div></div>
+
+  <!-- VISION CONTROLS -->
+  <section id="visionUI" class="view-ui">
+    <div id="camPrompt">
+      <button id="camStart" class="btn primary big">◉ ENGAGE CAMERA</button>
+      <div class="dim small">Demo: Metropolis simulation running</div>
+    </div>
+    <div id="zoomWrap" class="hidden">
+      <span id="zoomRead">1.0×</span>
+      <input id="zoom" type="range" min="1" max="20" step="0.01" value="1" aria-label="Zoom">
+      <span id="rangeRead">RNG 0.0 km</span>
+    </div>
+    <div id="actions">
+      <button id="btnFlip" class="btn round" aria-label="Switch camera">⟲<small>FLIP</small></button>
+      <button id="btnShot" class="btn round shot" aria-label="Capture photo"><span></span></button>
+      <button id="btnFire" class="btn round fire hidden" aria-label="Fire heat vision">FIRE</button>
+      <button id="btnSensors" class="btn round" aria-label="Enable sensors">◎<small>SENSE</small></button>
+    </div>
+    <nav id="modes">
+      <button data-mode="0" class="on">NORMAL</button>
+      <button data-mode="1">HEAT</button>
+      <button data-mode="2">X-RAY</button>
+      <button data-mode="3">TELE</button>
+      <button data-mode="4">MICRO</button>
+      <button data-mode="5">NIGHT</button>
+      <button data-mode="6">SOLAR</button>
+    </nav>
+  </section>
+
+  <!-- PANELS -->
+  <section id="panel-fortress" class="panel">
+    <canvas id="holo"></canvas>
+    <div class="panel-head"><h2>FORTRESS HOLOGRAM</h2><p class="dim">Drag to spin · crystal archive online</p></div>
+    <div id="holoLoading" class="dim">Growing crystal…</div>
+    <div class="panel-foot"><button id="holoPulse" class="btn">✦ RESONATE</button><button id="holoAuto" class="btn on">AUTO-SPIN</button></div>
+  </section>
+
+  <section id="panel-hearing" class="panel">
+    <canvas id="ears"></canvas>
+    <div class="panel-head"><h2>SUPER HEARING</h2><p id="earStatus" class="dim">Microphone offline · tap to listen</p></div>
+    <div class="panel-foot"><button id="earStart" class="btn primary">◉ LISTEN</button><span id="earDb" class="readout">-- dB</span><span id="earHz" class="readout">-- Hz</span></div>
+  </section>
+
+  <section id="panel-flight" class="panel">
+    <canvas id="sky"></canvas>
+    <div class="panel-head"><h2>FLIGHT MODE</h2><p class="dim">Tilt your phone (or drag) to bank</p></div>
+    <div class="panel-foot"><button id="flyBoost" class="btn primary">⇧ BOOST</button><span id="flySpd" class="readout">MACH 0.0</span><span id="flyAlt" class="readout">ALT 0 m</span></div>
+  </section>
+
+  <section id="panel-glyphs" class="panel scroll">
+    <div class="panel-head"><h2>KRYPTONIAN TRANSLATOR</h2><p class="dim">Type English — rendered in crystal script</p></div>
+    <div class="card">
+      <textarea id="glyphIn" maxlength="120" rows="2" placeholder="Type a message…">Hello Nick</textarea>
+      <div id="glyphOut" aria-live="polite"></div>
+      <div class="row"><button id="glyphSpeak" class="btn">♫ TRANSMIT</button><button id="glyphCopy" class="btn">⧉ COPY SVG</button></div>
+    </div>
+    <div class="card"><h3>GLYPH KEY</h3><div id="glyphKey"></div></div>
+  </section>
+
+  <section id="panel-log" class="panel scroll">
+    <div class="panel-head"><h2>MISSION LOG</h2><p class="dim">Stored locally in the visor crystal</p></div>
+    <div class="card">
+      <textarea id="logIn" rows="3" maxlength="500" placeholder="Log entry…"></textarea>
+      <div class="row"><button id="logAdd" class="btn primary">+ RECORD</button><span id="logCount" class="dim"></span></div>
+    </div>
+    <ul id="logList"></ul>
+  </section>
+
+  <section id="panel-settings" class="panel scroll">
+    <div class="panel-head"><h2>VISOR SETTINGS</h2><p class="dim">Tuned for iPhone 15 Pro Max</p></div>
+    <div class="card">
+      <h3>QUALITY</h3>
+      <div class="seg" id="qualSeg"><button data-q="auto">AUTO</button><button data-q="high">HIGH</button><button data-q="saver">BATTERY SAVER</button></div>
+      <p class="dim small" id="govRead">Governor: —</p>
+    </div>
+    <div class="card">
+      <h3>SOUND</h3>
+      <div class="row"><input id="vol" type="range" min="0" max="1" step="0.01" aria-label="Volume"><button id="mute" class="btn">MUTE</button></div>
+      <label class="tog"><input id="haptics" type="checkbox"><span>Haptics (where supported)</span></label>
+      <label class="tog"><input id="bootSkip" type="checkbox"><span>Skip boot sequence next time</span></label>
+    </div>
+    <div class="card">
+      <h3>COLOR THEME</h3>
+      <div class="themes" id="themes">
+        <button data-theme="classic"><i style="--a:#1e6bff;--b:#e3232c;--c:#ffcc33"></i>CLASSIC</button>
+        <button data-theme="crystal"><i style="--a:#7fe9ff;--b:#c9f6ff;--c:#ffffff"></i>FORTRESS</button>
+        <button data-theme="solar"><i style="--a:#ffb21e;--b:#ff5a1f;--c:#fff3b0"></i>SOLAR</button>
+        <button data-theme="kryptonite"><i style="--a:#3dff8a;--b:#0fbf6a;--c:#d6ffe6"></i>KRYPTONITE</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>SENSORS &amp; PERMISSIONS</h3>
+      <div class="row wrap"><button id="setSensors" class="btn">◎ COMPASS + GPS</button><button id="replayBoot" class="btn">↻ REPLAY BOOT</button></div>
+      <p class="dim small" id="sensorRead">Compass: simulated · Speed: simulated</p>
+    </div>
+    <p class="dim small center">Original fan-made gadget for Nick. Not affiliated with any studio.</p>
+  </section>
+
+  <!-- TAB BAR -->
+  <nav id="tabs">
+    <button data-tab="vision" class="on"><b>◉</b>VISION</button>
+    <button data-tab="fortress"><b>◆</b>FORTRESS</button>
+    <button data-tab="hearing"><b>◍</b>HEARING</button>
+    <button data-tab="flight"><b>➶</b>FLIGHT</button>
+    <button data-tab="glyphs"><b>⟁</b>GLYPHS</button>
+    <button data-tab="log"><b>≣</b>LOG</button>
+    <button data-tab="settings"><b>⚙</b>SET</button>
+  </nav>
+
+  <!-- PHOTO PREVIEW -->
+  <div id="photo" class="hidden">
+    <img id="photoImg" alt="Captured super-vision frame">
+    <div class="row center"><a id="photoSave" class="btn primary" download="super-vision.png">⤓ SAVE PNG</a><button id="photoClose" class="btn">CLOSE</button></div>
+  </div>
+  <div id="flash"></div>
+  <div id="toast"></div>
+
+  <!-- BOOT -->
+  <div id="boot">
+    <canvas id="bootCv"></canvas>
+    <div id="bootTitle"><div class="t1">KRYPTONIAN</div><div class="t2">SUPER-VISION VISOR</div><div id="bootLine" class="t3">CRYSTAL MATRIX STANDBY</div></div>
+    <button id="bootGo" class="btn primary big">TAP TO POWER UP</button>
+    <button id="bootSkipBtn" class="btn ghost">SKIP ›</button>
+  </div>
+</div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

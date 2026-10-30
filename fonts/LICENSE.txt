@@ -1,0 +1,4 @@
+Fonts in this folder are subsets of fonts licensed under the SIL Open Font License, Version 1.1
+(https://openfontlicense.org): Oswald (The Oswald Project Authors), Cinzel (Natanael Gama),
+Playfair Display (Claus Eggers Sørensen), Rajdhani (Indian Type Foundry),
+UnifrakturMaguntia (J. "Mach" Wust). Subsetted to Latin for web use; names unchanged per OFL.

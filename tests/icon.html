@@ -1,0 +1,7 @@
+<!doctype html><body style="margin:0;background:#000"><canvas id="c"></canvas><script type="module">
+import { drawShield } from '../js/shield.js';
+window.make = (n, mask) => { const c = document.getElementById('c'); c.width = c.height = n; const x = c.getContext('2d');
+ const g = x.createRadialGradient(n/2, n*0.4, 0, n/2, n/2, n*0.75); g.addColorStop(0, '#1b4fb0'); g.addColorStop(1, '#030816'); x.fillStyle = g; x.fillRect(0, 0, n, n);
+ drawShield(x, n/2, n*0.53, n*(mask ? 0.27 : 0.37), { glow: 1.2 }); return c.toDataURL('image/png'); };
+window.ready = true;
+</script></body>
