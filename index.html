@@ -42,10 +42,19 @@
       <input id="zoom" type="range" min="1" max="20" step="0.01" value="1" aria-label="Zoom">
       <span id="rangeRead">RNG 0.0 km</span>
     </div>
+    <div id="powers" role="group" aria-label="Powers">
+      <button data-power="freeze"><i>❄</i>FREEZE</button>
+      <button data-power="breath"><i>≋</i>BREATH</button>
+      <button data-power="punch"><i>✸</i>PUNCH</button>
+      <button data-power="speed"><i>⚡</i>SPEED</button>
+      <button id="btnGame" class="game"><i>⛨</i>RESCUE</button>
+    </div>
     <div id="actions">
       <button id="btnFlip" class="btn round" aria-label="Switch camera">⟲<small>FLIP</small></button>
+      <button id="btnTrack" class="btn round" aria-label="Toggle tracking">⌖<small>TRACK</small></button>
       <button id="btnShot" class="btn round shot" aria-label="Capture photo"><span></span></button>
       <button id="btnFire" class="btn round fire hidden" aria-label="Fire heat vision">FIRE</button>
+      <button id="btnRec" class="btn round rec" aria-label="Record video"><span></span><small>REC</small></button>
       <button id="btnSensors" class="btn round" aria-label="Enable sensors">◎<small>SENSE</small></button>
     </div>
     <nav id="modes">
@@ -56,6 +65,12 @@
       <button data-mode="4">MICRO</button>
       <button data-mode="5">NIGHT</button>
       <button data-mode="6">SOLAR</button>
+      <button data-mode="7">IR</button>
+      <button data-mode="8">UV</button>
+      <button data-mode="9">EM</button>
+      <button data-mode="10">MOTION</button>
+      <button data-mode="11">SPEED</button>
+      <button data-mode="12">KRYPTO</button>
     </nav>
   </section>
 
@@ -64,7 +79,7 @@
     <canvas id="holo"></canvas>
     <div class="panel-head"><h2>FORTRESS HOLOGRAM</h2><p class="dim">Drag to spin · crystal archive online</p></div>
     <div id="holoLoading" class="dim">Growing crystal…</div>
-    <div class="panel-foot"><button id="holoPulse" class="btn">✦ RESONATE</button><button id="holoAuto" class="btn on">AUTO-SPIN</button></div>
+    <div class="panel-foot"><button id="holoPulse" class="btn">✦ RESONATE</button><button id="holoAsk" class="btn">◈ CONSULT AI</button><button id="holoAuto" class="btn on">AUTO-SPIN</button></div>
   </section>
 
   <section id="panel-hearing" class="panel">
@@ -84,7 +99,7 @@
     <div class="card">
       <textarea id="glyphIn" maxlength="120" rows="2" placeholder="Type a message…">Hello Nick</textarea>
       <div id="glyphOut" aria-live="polite"></div>
-      <div class="row"><button id="glyphSpeak" class="btn">♫ TRANSMIT</button><button id="glyphCopy" class="btn">⧉ COPY SVG</button></div>
+      <div class="row"><button id="glyphSpeak" class="btn">♫ TRANSMIT</button><button id="glyphCopy" class="btn">⧉ COPY SVG</button><button id="glyphWrite" class="btn">✎ INSCRIBE</button></div>
     </div>
     <div class="card"><h3>GLYPH KEY</h3><div id="glyphKey"></div></div>
   </section>
@@ -96,6 +111,28 @@
       <div class="row"><button id="logAdd" class="btn primary">+ RECORD</button><span id="logCount" class="dim"></span></div>
     </div>
     <ul id="logList"></ul>
+  </section>
+
+  <section id="panel-missions" class="panel scroll">
+    <div class="panel-head"><h2>MISSIONS</h2><p class="dim">Earn XP · rise through the ranks</p></div>
+    <div class="card rankcard"><div id="rankBadge"></div><div class="rk"><div id="rankName">CADET</div><div class="xpbar"><i id="xpFill"></i></div><div id="xpRead" class="dim small">0 XP</div></div></div>
+    <div class="card"><h3>DAILY CHALLENGES</h3><ul id="dailyList" class="checks"></ul></div>
+    <div class="card"><h3>RESCUE OPS</h3><p class="dim small">60 seconds over Metropolis. Fire → FREEZE · Smog → BREATH · Girder → PUNCH · Drone → HEAT. Drag the city to pan.</p><div class="row"><button id="gameStart" class="btn primary">⛨ LAUNCH RESCUE</button><span id="gameBest" class="dim small"></span></div></div>
+    <div class="card"><h3>ACHIEVEMENTS <span id="achCount" class="dim"></span></h3><div id="achGrid"></div></div>
+  </section>
+
+  <section id="panel-gallery" class="panel scroll">
+    <div class="panel-head"><h2>CRYSTAL GALLERY</h2><p class="dim">Photos &amp; clips stored on this device</p></div>
+    <div id="galGrid"></div><p id="galEmpty" class="dim center">No captures yet — tap the shutter or REC in VISION.</p>
+  </section>
+
+  <section id="panel-weather" class="panel scroll">
+    <div class="panel-head"><h2>ATMOSPHERIC SCAN</h2><p class="dim" id="wxSrc">—</p></div>
+    <div class="card wx"><canvas id="wxCv" width="300" height="150"></canvas><div class="wxgrid">
+      <div><b id="wxTemp">--°</b><span>TEMP</span></div><div><b id="wxCond">--</b><span>SKY</span></div><div><b id="wxWind">--</b><span>WIND km/h</span></div>
+      <div><b id="wxAqi">--</b><span>US AQI</span></div><div><b id="wxPm">--</b><span>PM2.5</span></div><div><b id="wxUv">--</b><span>UV</span></div></div>
+      <div class="row"><button id="wxRefresh" class="btn">↻ RESCAN</button><button id="wxGeo" class="btn">◎ USE MY LOCATION</button></div>
+      <p class="dim small">Weather drives the demo city sky — rain, storms and night.</p></div>
   </section>
 
   <section id="panel-settings" class="panel scroll">
@@ -110,6 +147,14 @@
       <div class="row"><input id="vol" type="range" min="0" max="1" step="0.01" aria-label="Volume"><button id="mute" class="btn">MUTE</button></div>
       <label class="tog"><input id="haptics" type="checkbox"><span>Haptics (where supported)</span></label>
       <label class="tog"><input id="bootSkip" type="checkbox"><span>Skip boot sequence next time</span></label>
+      <label class="tog"><input id="ambient" type="checkbox"><span>Fortress ambient hum</span></label>
+      <label class="tog"><input id="reverb" type="checkbox"><span>Crystal reverb</span></label>
+      <label class="tog"><input id="guideOn" type="checkbox"><span>Fortress AI voice guide</span></label>
+    </div>
+    <div class="card">
+      <h3>HUD LAYOUT</h3>
+      <div class="seg" id="layoutSeg"><button data-l="full">FULL</button><button data-l="minimal">MINIMAL</button><button data-l="combat">COMBAT</button><button data-l="cinema">CINEMATIC</button></div>
+      <div class="row wrap" id="layoutToggles"><label class="tog"><input type="checkbox" data-k="compass"><span>Compass</span></label><label class="tog"><input type="checkbox" data-k="tapes"><span>Tapes</span></label><label class="tog"><input type="checkbox" data-k="radar"><span>Radar</span></label><label class="tog"><input type="checkbox" data-k="data"><span>Panels</span></label><label class="tog"><input type="checkbox" data-k="reticle"><span>Reticle</span></label></div>
     </div>
     <div class="card">
       <h3>COLOR THEME</h3>
@@ -125,24 +170,30 @@
       <div class="row wrap"><button id="setSensors" class="btn">◎ COMPASS + GPS</button><button id="replayBoot" class="btn">↻ REPLAY BOOT</button></div>
       <p class="dim small" id="sensorRead">Compass: simulated · Speed: simulated</p>
     </div>
+    <div class="card"><h3>DATA</h3><div class="row wrap"><button id="xpReset" class="btn">RESET PROGRESS</button></div></div>
     <p class="dim small center">Original fan-made gadget for Nick. Not affiliated with any studio.</p>
   </section>
 
   <!-- TAB BAR -->
   <nav id="tabs">
-    <button data-tab="vision" class="on"><b>◉</b>VISION</button>
-    <button data-tab="fortress"><b>◆</b>FORTRESS</button>
-    <button data-tab="hearing"><b>◍</b>HEARING</button>
-    <button data-tab="flight"><b>➶</b>FLIGHT</button>
-    <button data-tab="glyphs"><b>⟁</b>GLYPHS</button>
-    <button data-tab="log"><b>≣</b>LOG</button>
-    <button data-tab="settings"><b>⚙</b>SET</button>
+    <button data-tab="vision" class="on"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3.2"/></svg>VISION</button>
+    <button data-tab="fortress"><svg viewBox="0 0 24 24"><path d="M12 2l3 7-3 13-3-13zM5 8l2 4-2 8-2-8zM19 8l2 4-2 8-2-8z"/></svg>FORTRESS</button>
+    <button data-tab="hearing"><svg viewBox="0 0 24 24"><path d="M3 12h2M7 8v8M11 4v16M15 7v10M19 10v4M21 12h0"/></svg>HEARING</button>
+    <button data-tab="flight"><svg viewBox="0 0 24 24"><path d="M2 16l20-9-7 13-3-5z"/></svg>FLIGHT</button>
+    <button data-tab="missions"><svg viewBox="0 0 24 24"><path d="M12 2l3 6 6 1-4.5 4 1 6.5L12 16l-5.5 3.5 1-6.5L3 9l6-1z"/></svg>MISSIONS<i id="xpDot"></i></button>
+    <button data-tab="more"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>MORE</button>
   </nav>
+  <div id="moreSheet" class="hidden"><div class="sheet">
+    <button data-go="glyphs"><b>⟁</b>TRANSLATOR</button><button data-go="gallery"><b>▣</b>GALLERY</button><button data-go="weather"><b>☁</b>WEATHER</button>
+    <button data-go="log"><b>≣</b>LOG</button><button data-go="settings"><b>⚙</b>SETTINGS</button><button data-go="layout"><b>▤</b>HUD LAYOUT</button>
+  </div></div>
+  <div id="subs" aria-live="polite"></div>
+  <div id="xpPop"></div>
 
   <!-- PHOTO PREVIEW -->
   <div id="photo" class="hidden">
-    <img id="photoImg" alt="Captured super-vision frame">
-    <div class="row center"><a id="photoSave" class="btn primary" download="super-vision.png">⤓ SAVE PNG</a><button id="photoClose" class="btn">CLOSE</button></div>
+    <img id="photoImg" alt="Captured super-vision frame"><video id="photoVid" class="hidden" playsinline controls loop></video>
+    <div class="row center"><a id="photoSave" class="btn primary" download="super-vision.png">⤓ SAVE</a><button id="photoShare" class="btn">⇪ SHARE</button><button id="photoClose" class="btn">CLOSE</button></div>
   </div>
   <div id="flash"></div>
   <div id="toast"></div>

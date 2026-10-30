@@ -17,7 +17,7 @@ export async function createHolo(canvas, onReady) {
   const redMat = new T3.MeshPhysicalMaterial({ color: 0xc0001a, metalness: 0.25, roughness: 0.14, clearcoat: 1, emissive: 0x2a0004 });
   const goldMat = new T3.MeshStandardMaterial({ color: 0xffc23a, metalness: 0.85, roughness: 0.18, emissive: 0x5a3a00 });
   const sMat = new T3.MeshPhysicalMaterial({ color: 0xe0142c, metalness: 0.3, roughness: 0.15, clearcoat: 1, emissive: 0x3a0006 });
-  const crystal = new T3.MeshPhysicalMaterial({ color: 0x9fe8ff, metalness: 0, roughness: 0.05, transparent: true, opacity: 0.28, emissive: 0x0a3050, side: T3.DoubleSide, depthWrite: false });
+  const crystal = new T3.MeshPhysicalMaterial({ color: 0xbff3ff, metalness: 0, roughness: 0.04, transmission: 0.92, thickness: 0.6, ior: 1.6, iridescence: 0.8, iridescenceIOR: 1.4, envMapIntensity: 1.6, emissive: 0x0a3050, emissiveIntensity: 0.6, attenuationColor: new T3.Color(0x6fd8ff), attenuationDistance: 1.2 });
   const rim = new T3.Mesh(new T3.ExtrudeGeometry(rimShape, { depth: 0.24, ...bev }), redMat); rim.position.z = -0.12; shieldG.add(rim);
   const field = new T3.Mesh(new T3.ExtrudeGeometry(shape(inset(OUTLINE, 0.13)), { depth: 0.1, ...bev }), goldMat); field.position.z = -0.05; shieldG.add(field);
   const sFront = new T3.Group(), sBack = new T3.Group();
@@ -40,6 +40,15 @@ export async function createHolo(canvas, onReady) {
     const a = i / 14 * Math.PI * 2, r = 2.3 + Math.random() * 0.5; m.position.set(Math.cos(a) * r, -1.5 + h / 2, Math.sin(a) * r); m.rotation.z = (Math.random() - 0.5) * 0.3; m.rotation.x = (Math.random() - 0.5) * 0.3;
     spires.add(m); const e = new T3.LineSegments(new T3.EdgesGeometry(g), edgeMat); e.position.copy(m.position); e.rotation.copy(m.rotation); spires.add(e);
   }
+  // light shafts (additive gradient planes)
+  const lc = document.createElement('canvas'); lc.width = 32; lc.height = 256; const lx2 = lc.getContext('2d'); const lg = lx2.createLinearGradient(0, 256, 0, 0);
+  lg.addColorStop(0, 'rgba(160,230,255,.9)'); lg.addColorStop(1, 'rgba(160,230,255,0)'); lx2.fillStyle = lg; lx2.fillRect(0, 0, 32, 256);
+  const hg = lx2.createLinearGradient(0, 0, 32, 0); hg.addColorStop(0, 'rgba(0,0,0,1)'); hg.addColorStop(0.5, 'rgba(0,0,0,0)'); hg.addColorStop(1, 'rgba(0,0,0,1)'); lx2.globalCompositeOperation = 'destination-out'; lx2.fillStyle = hg; lx2.fillRect(0, 0, 32, 256);
+  const shaftMat = new T3.MeshBasicMaterial({ map: new T3.CanvasTexture(lc), transparent: true, opacity: 0.35, blending: T3.AdditiveBlending, depthWrite: false, side: T3.DoubleSide });
+  const shafts = new T3.Group(); root.add(shafts);
+  for (let i = 0; i < 7; i++) { const m = new T3.Mesh(new T3.PlaneGeometry(0.25 + Math.random() * 0.35, 4.2), shaftMat); const a = i / 7 * Math.PI * 2; m.position.set(Math.cos(a) * 0.9, 0.5, Math.sin(a) * 0.9); m.rotation.y = -a; m.rotation.z = (Math.random() - 0.5) * 0.25; shafts.add(m); }
+  // reflective crystal floor
+  const floor = new T3.Mesh(new T3.CircleGeometry(3.4, 64), new T3.MeshStandardMaterial({ color: 0x0a1630, metalness: 0.9, roughness: 0.22, envMapIntensity: 1.2 })); floor.rotation.x = -Math.PI / 2; floor.position.y = -1.52; root.add(floor);
   // base rings
   const ringMat = new T3.MeshBasicMaterial({ color: 0x55c8ff, transparent: true, opacity: 0.5, blending: T3.AdditiveBlending, side: T3.DoubleSide, depthWrite: false });
   const rings = [1.2, 1.6, 2.5].map((r, i) => { const m = new T3.Mesh(new T3.RingGeometry(r, r + 0.03 + i * 0.01, 96), ringMat); m.rotation.x = -Math.PI / 2; m.position.y = -1.5; root.add(m); return m; });
@@ -65,7 +74,7 @@ export async function createHolo(canvas, onReady) {
       shieldG.rotation.y = rotY; shieldG.rotation.x = tilt; shieldG.position.y = 0.35 + Math.sin(T * 1.2) * 0.08;
       shieldG.scale.setScalar(1.15 * (1 + pulse * 0.15 * Math.sin(pulse * 20)));
       spires.rotation.y = -rotY * 0.15; rings.forEach((r, i) => { r.rotation.z = T * (0.2 + i * 0.15) * (i % 2 ? -1 : 1); r.scale.setScalar(1 + pulse * 0.4 * (i + 1)); });
-      ringMat.opacity = 0.4 + pulse * 0.5; edgeMat.opacity = 0.45 + 0.2 * Math.sin(T * 3) + pulse * 0.4; coneMat.opacity = 0.06 + pulse * 0.1;
+      ringMat.opacity = 0.4 + pulse * 0.5; shafts.rotation.y = T * 0.12; shaftMat.opacity = 0.22 + 0.1 * Math.sin(T * 1.7) + pulse * 0.4; edgeMat.opacity = 0.45 + 0.2 * Math.sin(T * 3) + pulse * 0.4; coneMat.opacity = 0.06 + pulse * 0.1;
       const p = pg.attributes.position.array; for (let i = 1; i < p.length; i += 3) { p[i] += dt * (0.25 + pulse); if (p[i] > 2.1) p[i] = -1.5; } pg.attributes.position.needsUpdate = true;
       renderer.render(scene, cam);
     }

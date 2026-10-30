@@ -1,6 +1,6 @@
 // 2D HUD overlay drawn once per frame on its own canvas.
 const DIRS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-const MODE_TAGS = ['NORMAL HUD', 'HEAT VISION', 'X-RAY', 'TELESCOPIC', 'MICROSCOPIC', 'KRYPTONIAN NIGHT', 'SOLAR AURA'];
+const MODE_TAGS = ['NORMAL HUD', 'HEAT VISION', 'X-RAY', 'TELESCOPIC', 'MICROSCOPIC', 'KRYPTONIAN NIGHT', 'SOLAR AURA', 'INFRARED', 'ULTRAVIOLET', 'EM SPECTRUM', 'MOTION SIGHT', 'SUPER SPEED', 'KRYPTONITE SCAN'];
 export { MODE_TAGS };
 
 export function createHUD(cv) {
@@ -9,7 +9,7 @@ export function createHUD(cv) {
   const blips = [], sparks = [], scorch = [];
   let lastSweep = 0;
   const h = {
-    sparks, scorch,
+    sparks, scorch, get ctx() { return ctx; },
     resize() { dpr = Math.min(2, devicePixelRatio || 1); W = cv.clientWidth; H = cv.clientHeight; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); },
     get W() { return W; }, get H() { return H; },
     draw(s) {
@@ -17,22 +17,30 @@ export function createHUD(cv) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
       ctx.lineCap = 'round'; ctx.textBaseline = 'middle';
       const top = 112, bot = H - 400, cx = W / 2, cy = Math.max(top + 120, Math.min(H * 0.42, bot - 40));
+      const Lo = s.layout || {};
+      if (Lo.cinema) { ctx.fillStyle = 'rgba(0,0,0,.85)'; ctx.fillRect(0, 0, W, 64); ctx.fillRect(0, H - 220, W, 220); }
       // corner brackets
       ctx.strokeStyle = A; ctx.lineWidth = 2; ctx.globalAlpha = 0.8;
       const m = 14, L = 26, y0 = 58, y1 = H - 250;
       [[m, y0, 1, 1], [W - m, y0, -1, 1], [m, y1, 1, -1], [W - m, y1, -1, -1]].forEach(([x, y, sx, sy]) => { ctx.beginPath(); ctx.moveTo(x, y + L * sy); ctx.lineTo(x, y); ctx.lineTo(x + L * sx, y); ctx.stroke(); });
       ctx.globalAlpha = 1;
-      compass(s.heading, cx, 82, Math.min(W * 0.62, 420), A, C);
-      tape(36, top + 30, bot, s.alt, 'ALT', 'm', 1, A, C, 50);
-      tape(W - 62, top + 160, bot, s.speed, 'SPD', 'km/h', -1, A, C, 10);
-      radar(66, H - 322, 50, T, s, A, B, C);
-      dataBlock(W - 18, H - 360, s, C);
+      if (Lo.compass !== false) compass(s.heading, cx, 82, Math.min(W * 0.62, 420), A, C);
+      if (Lo.tapes !== false) { tape(36, top + 30, bot, s.alt, 'ALT', 'm', 1, A, C, 50); tape(W - 62, top + 160, bot, s.speed, 'SPD', 'km/h', -1, A, C, 10); }
+      if (Lo.radar !== false) radar(66, H - 322, 50, T, s, A, B, C);
+      if (Lo.data !== false) dataBlock(W - 18, H - 360, s, C);
+      if (s.targets && s.targets.length) targets(s, T, C);
       // mode-specific centre graphics
-      if (s.mode === 1) heatReticle(s, T, C);
+      if (Lo.reticle === false && s.mode !== 1) {}
+      else if (s.mode === 1) heatReticle(s, T, C);
       else if (s.mode === 2) skeleton(cx, cy, T, A);
       else if (s.mode === 3) scope(cx, cy, T, s, C);
       else if (s.mode === 4) microGrid(cx, cy, T, C);
-      else reticle(cx, cy, T, s.mode === 6 ? '#ffd76a' : s.mode === 5 ? '#6dffc6' : A, C, s.mode);
+      else if (s.mode === 9) emOverlay(T, C);
+      else if (s.mode === 10) motionOverlay(cx, cy, T, s);
+      else if (s.mode === 11) speedOverlay(cx, cy, T);
+      else if (s.mode === 12) krypOverlay(cx, cy, T, s);
+      else reticle(cx, cy, T, s.mode === 6 ? '#ffd76a' : s.mode === 5 ? '#6dffc6' : s.mode === 7 ? '#ff8a3a' : s.mode === 8 ? '#c78bff' : A, C, s.mode);
+      if (s.game && s.game.running) gameBar(s.game, T);
       beams(s, T);
       particles();
     }
@@ -100,6 +108,7 @@ export function createHUD(cv) {
     ctx.restore();
   }
   function dataBlock(x, y, s, C) {
+    panel(x - 152, y - 28, 158, 76, C, 'SYSTEM');
     const lines = [`SRC ${s.live ? 'OPTIC LIVE' : 'SIM METROPOLIS'}`, `ZOOM ${s.zoom.toFixed(1)}×`, `${s.fps} FPS · Q ${s.q}`, `GPS ${s.gps}`];
     lines.forEach((l, i) => txt(l, x, y + i * 14, 11, i === 0 ? C : 'rgba(200,230,255,.7)', 'right'));
   }
@@ -117,7 +126,69 @@ export function createHUD(cv) {
     ctx.beginPath(); [[-40, 0, -20, 0], [40, 0, 20, 0], [0, -40, 0, -22], [0, 40, 0, 22]].forEach(([a, b, c, d]) => { ctx.moveTo(a, b); ctx.lineTo(c, d); }); ctx.stroke();
     if (mode === 6) { ctx.strokeStyle = 'rgba(255,215,106,.5)'; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(0, 0, 110 + 6 * Math.sin(T * 3), 0, 7); ctx.stroke(); txt('SOLAR ABSORPTION ×3', 0, 132, 12, '#ffd76a'); }
     if (mode === 5) txt('PHOTON AMPLIFICATION 40 000×', 0, 112, 12, '#6dffc6');
+    if (mode === 7) { txt('THERMAL IR · 8–14 µm', 0, 112, 12, '#ffb070'); txt(`${(21 + Math.sin(T) * 3).toFixed(1)} °C`, 70, -70, 13, '#ffd0a0', 'left'); }
+    if (mode === 8) { txt('ULTRAVIOLET · 365 nm · FLUORESCENCE', 0, 112, 12, '#d8b0ff'); }
     ctx.restore();
+  }
+  function panel(x, y, w, h, C, title) {
+    ctx.save(); ctx.fillStyle = 'rgba(4,14,36,.62)'; ctx.strokeStyle = C; ctx.lineWidth = 1; const k = 8;
+    ctx.beginPath(); ctx.moveTo(x + k, y); ctx.lineTo(x + w, y); ctx.lineTo(x + w, y + h - k); ctx.lineTo(x + w - k, y + h); ctx.lineTo(x, y + h); ctx.lineTo(x, y + k); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 0.8; ctx.stroke();
+    ctx.globalAlpha = 0.08; ctx.fillStyle = C; for (let yy = y + 2; yy < y + h; yy += 3) ctx.fillRect(x + 1, yy, w - 2, 1); ctx.globalAlpha = 1;
+    if (title) { ctx.fillStyle = C; ctx.fillRect(x + k, y - 1, Math.min(w - k, title.length * 6.6 + 10), 2); txt(title, x + 8, y + 10, 10, C, 'left'); }
+    ctx.restore();
+  }
+  function targets(s, T, C) {
+    let lock = null;
+    for (const t of s.targets) {
+      const hot = t.threat >= 6, col = hot ? '#ff4d4d' : t.threat >= 3 ? '#ffb340' : '#6dffb4', w = Math.max(28, t.w), h = Math.max(28, t.h), x = t.x - w / 2, y = t.y - h / 2, k = 8;
+      ctx.strokeStyle = col; ctx.lineWidth = 1.6; ctx.beginPath();
+      [[x, y, 1, 1], [x + w, y, -1, 1], [x, y + h, 1, -1], [x + w, y + h, -1, -1]].forEach(([a, b, sx, sy]) => { ctx.moveTo(a, b + k * sy); ctx.lineTo(a, b); ctx.lineTo(a + k * sx, b); }); ctx.stroke();
+      if (hot) { ctx.globalAlpha = 0.5 + 0.5 * Math.sin(T * 8); ctx.strokeRect(x - 4, y - 4, w + 8, h + 8); ctx.globalAlpha = 1; }
+      txt(t.label, x, y - 8, 10, col, 'left');
+      if (!lock || t.threat > lock.threat || t.locked) lock = t;
+    }
+    if (!lock || s.layout?.data === false) return;
+    const px = 14, py = 128, pw = 170, ph = 74; panel(px, py, pw, ph, C, 'THREAT ANALYSIS');
+    const lv = lock.threat >= 6 ? 'HOSTILE' : lock.threat >= 3 ? 'CAUTION' : 'BENIGN', col = lock.threat >= 6 ? '#ff4d4d' : lock.threat >= 3 ? '#ffb340' : '#6dffb4';
+    txt(lock.label, px + 8, py + 27, 12, '#fff', 'left'); txt(lv, px + 8, py + 44, 14, col, 'left');
+    txt(`DIST ${(40 + Math.abs(lock.y - H / 2) * 1.7).toFixed(0)} m`, px + pw - 8, py + 44, 10, 'rgba(210,235,255,.8)', 'right');
+    ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.fillRect(px + 8, py + 58, pw - 16, 5); ctx.fillStyle = col; ctx.fillRect(px + 8, py + 58, (pw - 16) * Math.min(1, lock.threat / 10 + 0.05), 5);
+    ctx.strokeStyle = col; ctx.globalAlpha = 0.35; ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.moveTo(px + pw, py + ph / 2); ctx.lineTo(lock.x, lock.y); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+  }
+  function emOverlay(T, C) {
+    const src = [[0.22, 0.72, 'Wi-Fi 2.4 GHz', '#5cf'], [0.78, 0.62, 'CELL 1.9 GHz', '#f6c'], [0.5, 0.18, 'FM 98.7 MHz', '#fd5']];
+    for (const [u, v, l, c] of src) { const x = u * W, y = (1 - v) * H; ctx.strokeStyle = c;
+      for (let i = 0; i < 3; i++) { const r = ((T * 40 + i * 30) % 90); ctx.globalAlpha = 1 - r / 90; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.stroke(); }
+      ctx.globalAlpha = 1; txt(l, x, y - 14, 11, c); }
+    const y = H - 286, x0 = 20, w = W - 40; panel(x0, y - 18, w, 30, C, '');
+    const bands = [['RADIO', '#f55'], ['µWAVE', '#fa4'], ['IR', '#fe5'], ['VIS', '#5f8'], ['UV', '#59f'], ['X', '#a6f'], ['γ', '#f6f']];
+    bands.forEach(([b, c], i) => { const bx = x0 + 6 + i * (w - 12) / 7; ctx.fillStyle = c; ctx.globalAlpha = 0.35 + 0.35 * (Math.sin(T * 3 + i) * 0.5 + 0.5); ctx.fillRect(bx, y - 10, (w - 12) / 7 - 3, 14); ctx.globalAlpha = 1; txt(b, bx + (w - 12) / 14, y - 3, 10, '#fff'); });
+  }
+  function motionOverlay(cx, cy, T, s) {
+    const m = s.motion ?? (0.3 + 0.2 * Math.sin(T * 2)); ctx.strokeStyle = '#5dffd0'; ctx.lineWidth = 1;
+    for (let i = 0; i < 4; i++) { ctx.globalAlpha = 0.6 - i * 0.13; ctx.strokeRect(cx - 50 - i * 14, cy - 50 - i * 14, 100 + i * 28, 100 + i * 28); } ctx.globalAlpha = 1;
+    txt('MOTION FIELD · FRAME DELTA', cx, cy + 112, 12, '#5dffd0');
+    ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.fillRect(cx - 60, cy + 124, 120, 5); ctx.fillStyle = '#5dffd0'; ctx.fillRect(cx - 60, cy + 124, 120 * Math.min(1, m), 5);
+  }
+  function speedOverlay(cx, cy, T) {
+    ctx.save(); ctx.translate(cx, cy); ctx.strokeStyle = '#ffd76a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 70, 0, 7); ctx.stroke();
+    for (let i = 0; i < 12; i++) { ctx.save(); ctx.rotate(i * Math.PI / 6); ctx.beginPath(); ctx.moveTo(0, -62); ctx.lineTo(0, -70); ctx.stroke(); ctx.restore(); }
+    ctx.rotate(T * 0.15); ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -56); ctx.stroke(); ctx.restore();
+    txt('TIME DILATION ×0.04', cx, cy + 92, 13, '#ffd76a'); txt('THE WORLD STANDS STILL', cx, cy + 110, 10, 'rgba(255,230,170,.8)');
+  }
+  function krypOverlay(cx, cy, T, s) {
+    const k = s.kryp || [], col = '#5dff8a'; let near = 0;
+    for (const p of k) { const d = Math.hypot(p.x - cx, p.y - cy); near = Math.max(near, 1 - Math.min(1, d / (W * 0.8)));
+      ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.globalAlpha = 0.6 + 0.4 * Math.sin(T * 9); ctx.beginPath(); ctx.arc(p.x, p.y, 18 + 4 * Math.sin(T * 6), 0, 7); ctx.stroke(); ctx.globalAlpha = 1;
+      txt('Kr-SHARD', p.x, p.y - 28, 11, col); }
+    ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(cx, cy, 60, 0, 7); ctx.stroke(); ctx.beginPath(); ctx.moveTo(cx - 70, cy); ctx.lineTo(cx + 70, cy); ctx.moveTo(cx, cy - 70); ctx.lineTo(cx, cy + 70); ctx.stroke();
+    s.krypNear = near; const bx = cx - 90, by = cy + 96; txt(`RADIATION ${(near * 9.9).toFixed(1)} mSv`, cx, by - 10, 12, near > 0.6 ? '#ff5d5d' : col);
+    for (let i = 0; i < 20; i++) { ctx.fillStyle = i / 20 < near ? (i > 14 ? '#ff4d4d' : col) : 'rgba(255,255,255,.12)'; ctx.fillRect(bx + i * 9, by, 7, 10); }
+  }
+  function gameBar(g, T) {
+    const w = 210, x = (W - w) / 2, y = 128; panel(x, y, w, 40, '#ffcc33', 'RESCUE OPS');
+    txt(`${Math.ceil(g.time)}s`, x + 12, y + 26, 18, g.time < 10 && Math.sin(T * 10) > 0 ? '#ff4d4d' : '#fff', 'left');
+    txt(`SAVED ${g.score}`, x + w / 2 + 10, y + 26, 14, '#6dffb4'); txt(`LOST ${g.missed}`, x + w - 10, y + 26, 12, '#ff8a6a', 'right');
   }
   function heatReticle(s, T, C) {
     const [tx, ty] = s.target; ctx.save(); ctx.translate(tx, ty);
